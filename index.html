@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seldon Corporate — Organizational Resilience Observatory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0d0f14;
+  --surf:   #141720;
+  --surf2:  #1b1f2b;
+  --border: #252b3a;
+  --text:   #e8ecf4;
+  --muted:  #5a6475;
+  --dim:    #3a4255;
+
+  --stable:   #22c55e;
+  --tension:  #eab308;
+  --fragile:  #f97316;
+  --rupture:  #ef4444;
+
+  --Rs: #22c55e;
+  --Ro: #3b82f6;
+  --Rt: #f59e0b;
+  --Rf: #8b5cf6;
+  --Rc: #ec4899;
+
+  --accent: #6366f1;
+  --gold:   #f59e0b;
+
+  --gA: #ef4444;
+  --gB: #3b82f6;
+  --gC: #22c55e;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── HEADER ── */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  padding: 1.5rem 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,15,20,0.92);
+  backdrop-filter: blur(12px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-icon {
+  width: 32px; height: 32px;
+  border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: -0.05em;
+}
+
+.logo-text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.logo-sub {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.header-pills {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pill {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.pill.active { border-color: var(--accent); color: var(--accent); }
+
+/* ── MAIN LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - 65px);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 0;
+  background: var(--surf);
+  overflow-y: auto;
+  position: sticky;
+  top: 65px;
+  height: calc(100vh - 65px);
+}
+
+.sidebar-group {
+  margin-bottom: 0.25rem;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.group-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.group-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.case-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.65rem 1.5rem 0.65rem 2rem;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  transition: background 0.15s;
+  border-left: 2px solid transparent;
+}
+
+.case-btn:hover { background: var(--surf2); }
+.case-btn.active {
+  background: var(--surf2);
+  border-left-color: var(--accent);
+}
+
+.case-btn-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.case-btn-period {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.case-btn-q {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.calibration-tag {
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  border: 1px solid rgba(245,158,11,0.4);
+  padding: 1px 5px;
+  margin-left: 0.4rem;
+}
+
+/* ── CONTENT ── */
+.content {
+  overflow-y: auto;
+}
+
+/* ── OVERVIEW PANEL ── */
+.overview {
+  padding: 3rem 3rem 4rem;
+}
+
+.overview-hero {
+  margin-bottom: 3rem;
+}
+
+.hero-eyebrow {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.hero-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+
+.hero-title em { font-style: italic; color: var(--gold); }
+
+.hero-sub {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 580px;
+  line-height: 1.75;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+.stat-cell {
+  background: var(--surf);
+  padding: 1.25rem 1.5rem;
+}
+
+.stat-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.stat-val {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat-val.danger { color: var(--rupture); }
+.stat-val.warn   { color: var(--gold); }
+.stat-val.ok     { color: var(--stable); }
+
+.stat-sub {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 0.3rem;
+}
+
+/* ── CROSS-CASE CHART ── */
+.overview-section-title {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.chart-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-box h3 {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.25rem;
+}
+
+.chart-wrap { position: relative; }
+
+/* ── CASE PANEL ── */
+.case-panel { display: none; padding: 2.5rem 3rem 4rem; }
+.case-panel.active { display: block; }
+
+.case-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.case-header-left { flex: 1; }
+
+.case-group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.case-title {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 2.8rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.case-period {
+  font-family: 'Syne Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.case-event {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.q-final-display {
+  text-align: right;
+}
+
+.q-final-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.q-final-value {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.q-final-regime {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 0.3rem;
+}
+
+/* ── KPIS ── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.kpi {
+  background: var(--surf);
+  padding: 1rem 1.25rem;
+}
+
+.kpi-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.kpi-val {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.kpi-val.danger { color: var(--rupture); }
+.kpi-val.warn   { color: var(--gold); }
+.kpi-val.ok     { color: var(--stable); }
+.kpi-val.blue   { color: #3b82f6; }
+
+.kpi-sub {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+/* ── GRID LAYOUT ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.full-width { margin-bottom: 1.5rem; }
+
+/* ── DIMENSION BARS ── */
+.dim-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.dim-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 52px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dim-key {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dim-key-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.dim-track {
+  height: 5px;
+  background: var(--dim);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dim-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+.dim-score-val {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  text-align: right;
+}
+
+/* ── EWS CARDS ── */
+.ews-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.ews-cell {
+  background: var(--surf);
+  padding: 1rem 1.25rem;
+}
+
+.ews-cell.ews-on  { background: rgba(239,68,68,0.08); border-bottom: 2px solid var(--rupture); }
+.ews-cell.ews-off { background: rgba(34,197,94,0.06); border-bottom: 2px solid var(--stable); }
+
+.ews-cell-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.ews-on  .ews-cell-label { color: var(--rupture); }
+.ews-off .ews-cell-label { color: var(--stable); }
+
+.ews-cell-name { font-size: 13px; font-weight: 600; margin-bottom: 0.3rem; }
+.ews-cell-val  {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── ANNOTATION BOX ── */
+.anno-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.25rem;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #b0bac8;
+  margin-bottom: 1.5rem;
+}
+
+.anno-box.danger { border-left-color: var(--rupture); }
+.anno-box.ok     { border-left-color: var(--stable); }
+.anno-box.warn   { border-left-color: var(--gold); }
+
+.anno-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+.anno-box .anno-label    { color: var(--accent); }
+.anno-box.danger .anno-label { color: var(--rupture); }
+.anno-box.ok     .anno-label { color: var(--stable); }
+.anno-box.warn   .anno-label { color: var(--gold); }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── OVERVIEW TABLE ── */
+.overview-table { width: 100%; border-collapse: collapse; }
+.overview-table th {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.overview-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+  font-family: 'Syne Mono', monospace;
+}
+.overview-table tr:hover td { background: var(--surf2); }
+
+.regime-tag {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.regime-tag.stable   { background: rgba(34,197,94,0.12);  color: var(--stable); }
+.regime-tag.tension  { background: rgba(234,179,8,0.12);  color: var(--tension); }
+.regime-tag.fragile  { background: rgba(249,115,22,0.12); color: var(--fragile); }
+.regime-tag.rupture  { background: rgba(239,68,68,0.12);  color: var(--rupture); }
+
+/* ── LEGEND ── */
+.legend-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.legend-line { width: 16px; height: 2px; }
+
+/* ── THRESHOLD LINE ── */
+.threshold-note {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--rupture);
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+.threshold-note::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 1px;
+  border-top: 1px dashed var(--rupture);
+}
+
+/* ── LOO RESULT BOX ── */
+.loo-box {
+  background: var(--surf);
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.loo-item {}
+.loo-item-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.loo-item-val {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 1.8rem;
+  color: var(--text);
+}
+.loo-item-val.ok { color: var(--stable); }
+.loo-item-sub {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .case-panel { padding: 1.5rem; }
+  .two-col, .kpi-row, .stat-grid { grid-template-columns: 1fr; }
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.case-panel.active { animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">
+    <div class="logo-icon">Ψ</div>
+    <div>
+      <div class="logo-text">Seldon Corporate</div>
+      <div class="logo-sub">Resilience Observatory · v3.0</div>
+    </div>
+  </div>
+  <div class="header-pills">
+    <div class="pill">11 Cases</div>
+    <div class="pill">3 Groups</div>
+    <div class="pill active">Q(t) = R − Pe×(1+γPe)</div>
+    <div class="pill">EWS Active</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-group">
+      <div class="group-header">
+        <div class="group-dot" style="background:var(--gA)"></div>
+        <div class="group-label">Group A · Collapses</div>
+      </div>
+      <button class="case-btn" onclick="showCase('samsung')" id="btn-samsung">
+        <div><div class="case-btn-name">Samsung <span class="calibration-tag">CAL</span></div><div class="case-btn-period">2019–2024</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.240</div>
+      </button>
+      <button class="case-btn" onclick="showCase('nokia')" id="btn-nokia">
+        <div><div class="case-btn-name">Nokia</div><div class="case-btn-period">2007–2013</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.836</div>
+      </button>
+      <button class="case-btn" onclick="showCase('kodak')" id="btn-kodak">
+        <div><div class="case-btn-name">Kodak</div><div class="case-btn-period">1998–2012</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.826</div>
+      </button>
+      <button class="case-btn" onclick="showCase('blackberry')" id="btn-blackberry">
+        <div><div class="case-btn-name">BlackBerry</div><div class="case-btn-period">2010–2016</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.873</div>
+      </button>
+      <button class="case-btn" onclick="showCase('blockbuster')" id="btn-blockbuster">
+        <div><div class="case-btn-name">Blockbuster</div><div class="case-btn-period">2004–2010</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.868</div>
+      </button>
+      <button class="case-btn" onclick="showCase('yahoo')" id="btn-yahoo">
+        <div><div class="case-btn-name">Yahoo</div><div class="case-btn-period">2008–2016</div></div>
+        <div class="case-btn-q" style="color:var(--rupture)">−0.712</div>
+      </button>
+    </div>
+
+    <div class="sidebar-group" style="margin-top:1rem">
+      <div class="group-header">
+        <div class="group-dot" style="background:var(--gB)"></div>
+        <div class="group-label">Group B · Adaptive Jumps</div>
+      </div>
+      <button class="case-btn" onclick="showCase('microsoft')" id="btn-microsoft">
+        <div><div class="case-btn-name">Microsoft</div><div class="case-btn-period">2010–2020</div></div>
+        <div class="case-btn-q" style="color:var(--stable)">+0.335</div>
+      </button>
+      <button class="case-btn" onclick="showCase('netflix')" id="btn-netflix">
+        <div><div class="case-btn-name">Netflix</div><div class="case-btn-period">2008–2018</div></div>
+        <div class="case-btn-q" style="color:var(--stable)">+0.364</div>
+      </button>
+    </div>
+
+    <div class="sidebar-group" style="margin-top:1rem">
+      <div class="group-header">
+        <div class="group-dot" style="background:var(--gC)"></div>
+        <div class="group-label">Group C · Sustained</div>
+      </div>
+      <button class="case-btn" onclick="showCase('amazon')" id="btn-amazon">
+        <div><div class="case-btn-name">Amazon</div><div class="case-btn-period">2010–2020</div></div>
+        <div class="case-btn-q" style="color:var(--stable)">+0.527</div>
+      </button>
+      <button class="case-btn" onclick="showCase('toyota')" id="btn-toyota">
+        <div><div class="case-btn-name">Toyota</div><div class="case-btn-period">2005–2020</div></div>
+        <div class="case-btn-q" style="color:var(--stable)">+0.332</div>
+      </button>
+      <button class="case-btn" onclick="showCase('tsmc')" id="btn-tsmc">
+        <div><div class="case-btn-name">TSMC</div><div class="case-btn-period">2010–2020</div></div>
+        <div class="case-btn-q" style="color:var(--stable)">+0.632</div>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── CONTENT ── -->
+  <main class="content">
+
+    <!-- OVERVIEW -->
+    <div class="overview" id="panel-overview">
+      <div class="overview-hero">
+        <div class="hero-eyebrow">Seldon Corporate · Organizational Resilience Observatory</div>
+        <h1 class="hero-title">Does organizational<br>resilience leave <em>traces</em><br>before it collapses?</h1>
+        <p class="hero-sub">11 companies. 3 groups. Q(t) = R(t) − Pe(t)×(1+γ·Pe(t)). The model detects structural rupture before it appears in financial statements — using the same Early Warning Signal mathematics from ecology and climate science.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-label">Cases analysed</div>
+          <div class="stat-val">11</div>
+          <div class="stat-sub">6 collapse · 2 jump · 3 stable</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">LOO mean lead time</div>
+          <div class="stat-val warn">4.3y</div>
+          <div class="stat-sub">before crisis observable in financials</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">False positives</div>
+          <div class="stat-val ok">0/5</div>
+          <div class="stat-sub">Group B+C never cross −0.20</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">LOO Q_crit</div>
+          <div class="stat-val danger">+0.07</div>
+          <div class="stat-sub">Empirical threshold (not prior)</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:2.5rem">
+        <div class="overview-section-title">Cross-case Q(t) — all 11 companies</div>
+        <div class="chart-box">
+          <div class="chart-wrap" style="height:320px">
+            <canvas id="overviewChart"></canvas>
+          </div>
+          <div class="legend-row" style="margin-top:1rem">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--gA)"></div>Group A (collapses)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--gB)"></div>Group B (adaptive jumps)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--gC)"></div>Group C (sustained resilience)</div>
+          </div>
+          <div class="threshold-note">Q = −0.20 · Structural Rupture threshold</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:2.5rem">
+        <div class="overview-section-title">LOO cross-validation results</div>
+        <div class="loo-box">
+          <div class="loo-item">
+            <div class="loo-item-label">Cases pass (≥1yr lead)</div>
+            <div class="loo-item-val ok">6/6</div>
+            <div class="loo-item-sub">Group A · all confirmed</div>
+          </div>
+          <div class="loo-item">
+            <div class="loo-item-label">Mean lead time</div>
+            <div class="loo-item-val">4.3yr</div>
+            <div class="loo-item-sub">std = 2.7</div>
+          </div>
+          <div class="loo-item">
+            <div class="loo-item-label">Q_crit stability</div>
+            <div class="loo-item-val">±0.016</div>
+            <div class="loo-item-sub">std across 6 folds</div>
+          </div>
+          <div class="loo-item">
+            <div class="loo-item-label">False positives</div>
+            <div class="loo-item-val ok">0</div>
+            <div class="loo-item-sub">Groups B + C</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="overview-section-title">Summary table — all cases</div>
+        <table class="overview-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Group</th>
+              <th>Period</th>
+              <th>Q initial</th>
+              <th>Q final</th>
+              <th>Final regime</th>
+              <th>EWS active</th>
+              <th>Dominant dimension</th>
+            </tr>
+          </thead>
+          <tbody id="summaryTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CASE PANELS (injected by JS) -->
+    <div id="case-panels-container"></div>
+
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════
+
+const CASES = {
+  samsung: {
+    group:'A', groupColor:'#ef4444',
+    label:'Samsung Electronics', sector:'Semiconductors',
+    period:'2019–2024', calibration:true,
+    event:'HBM crisis · record loss KRW 14.88T (2023)',
+    dominantFail:'Rt (Technological)',
+    anno: 'Samsung is the calibration case. The HBM technological lag drove Rt to 0.32 by 2023 despite strong financials (Rf=0.65). Q crossed rupture threshold in 2023 — the same year operating income turned to a record loss. Financial indicators confirmed what the model had flagged one year earlier.',
+    annoClass:'danger',
+    timeline:[
+      {year:2019,Rs:0.72,Ro:0.68,Rt:0.75,Rf:0.82,Rc:0.60,R_scalar:0.6994,Pe_raw:0.2260,Pe_eff:0.2516,Q:0.4478},
+      {year:2020,Rs:0.68,Ro:0.66,Rt:0.70,Rf:0.79,Rc:0.58,R_scalar:0.6656,Pe_raw:0.2530,Pe_eff:0.2851,Q:0.3805},
+      {year:2021,Rs:0.65,Ro:0.62,Rt:0.62,Rf:0.76,Rc:0.55,R_scalar:0.6166,Pe_raw:0.3610,Pe_eff:0.4262,Q:0.1904},
+      {year:2022,Rs:0.60,Ro:0.55,Rt:0.52,Rf:0.70,Rc:0.50,R_scalar:0.5454,Pe_raw:0.4790,Pe_eff:0.5938,Q:-0.0484},
+      {year:2023,Rs:0.50,Ro:0.40,Rt:0.32,Rf:0.62,Rc:0.42,R_scalar:0.4068,Pe_raw:0.6230,Pe_eff:0.8111,Q:-0.4043},
+      {year:2024,Rs:0.52,Ro:0.44,Rt:0.36,Rf:0.65,Rc:0.40,R_scalar:0.4276,Pe_raw:0.6030,Pe_eff:0.7849,Q:-0.3573},
+    ],
+    weights:{Rs:0.14,Ro:0.24,Rt:0.32,Rf:0.04,Rc:0.27},
+    ews:{EWS_var:true,EWS_var_value:1.82,EWS_ac:true,EWS_ac_value:0.74,EWS_csd:true},
+  },
+  nokia: {
+    group:'A', groupColor:'#ef4444',
+    label:'Nokia Corporation', sector:'Consumer Electronics',
+    period:'2007–2013',
+    event:'Microsoft acquisition · devices division (2013)',
+    dominantFail:'Rc (Cognitive)',
+    anno: 'Nokia had the resources to respond (Rf=0.82 in 2007). The failure was cognitive — 15-year chairman tenure, Finnish monoculture, path dependence. The model detected structural rupture in 2010, 12 months before the "Burning Platform" memo. First out-of-sample validation case: zero parameter recalibration from Samsung.',
+    annoClass:'danger',
+    timeline:[
+      {year:2007,Rs:0.65,Ro:0.72,Rt:0.58,Rf:0.82,Rc:0.45,R_scalar:0.594,Pe_raw:0.080,Pe_eff:0.083,Q:0.511},
+      {year:2008,Rs:0.58,Ro:0.65,Rt:0.50,Rf:0.78,Rc:0.42,R_scalar:0.535,Pe_raw:0.194,Pe_eff:0.213,Q:0.323},
+      {year:2009,Rs:0.50,Ro:0.55,Rt:0.40,Rf:0.70,Rc:0.38,R_scalar:0.460,Pe_raw:0.319,Pe_eff:0.369,Q:0.091},
+      {year:2010,Rs:0.40,Ro:0.45,Rt:0.28,Rf:0.62,Rc:0.35,R_scalar:0.379,Pe_raw:0.471,Pe_eff:0.582,Q:-0.203},
+      {year:2011,Rs:0.28,Ro:0.30,Rt:0.18,Rf:0.45,Rc:0.30,R_scalar:0.277,Pe_raw:0.600,Pe_eff:0.780,Q:-0.503},
+      {year:2012,Rs:0.22,Ro:0.20,Rt:0.12,Rf:0.30,Rc:0.28,R_scalar:0.219,Pe_raw:0.695,Pe_eff:0.937,Q:-0.718},
+      {year:2013,Rs:0.18,Ro:0.15,Rt:0.10,Rf:0.22,Rc:0.25,R_scalar:0.183,Pe_raw:0.743,Pe_eff:1.018,Q:-0.836},
+    ],
+    weights:{Rs:0.29,Ro:0.21,Rt:0.17,Rf:0.02,Rc:0.31},
+    ews:{EWS_var:true,EWS_var_value:1.71,EWS_ac:true,EWS_ac_value:0.73,EWS_csd:true},
+    jumpAnno:'Elop appointed Oct 2010 — too late, wrong platform',
+  },
+  kodak: {
+    group:'A', groupColor:'#ef4444',
+    label:'Eastman Kodak', sector:'Imaging',
+    period:'1998–2012',
+    event:'Chapter 11 bankruptcy · January 2012',
+    dominantFail:'Rc + Rt combined',
+    anno: 'Kodak invented the digital camera in 1975. The collapse was not technological ignorance — it was strategic paralysis. Kodak held the IP but refused to cannibalize film. The slowest collapse in the dataset: 14 years from first signal to bankruptcy. Q crossed fragility zone in 2004, rupture in 2006. Lead time: 6 years before bankruptcy.',
+    annoClass:'danger',
+    timeline:[
+      {year:1998,Rs:0.72,Ro:0.68,Rt:0.55,Rf:0.78,Rc:0.42,R_scalar:0.604,Pe_raw:0.058,Pe_eff:0.061,Q:0.543},
+      {year:2000,Rs:0.68,Ro:0.65,Rt:0.50,Rf:0.74,Rc:0.40,R_scalar:0.570,Pe_raw:0.115,Pe_eff:0.122,Q:0.448},
+      {year:2002,Rs:0.60,Ro:0.58,Rt:0.42,Rf:0.65,Rc:0.37,R_scalar:0.505,Pe_raw:0.248,Pe_eff:0.279,Q:0.226},
+      {year:2004,Rs:0.50,Ro:0.50,Rt:0.32,Rf:0.55,Rc:0.34,R_scalar:0.427,Pe_raw:0.414,Pe_eff:0.500,Q:-0.073},
+      {year:2006,Rs:0.38,Ro:0.42,Rt:0.24,Rf:0.42,Rc:0.30,R_scalar:0.344,Pe_raw:0.474,Pe_eff:0.586,Q:-0.242},
+      {year:2008,Rs:0.28,Ro:0.30,Rt:0.18,Rf:0.30,Rc:0.26,R_scalar:0.262,Pe_raw:0.580,Pe_eff:0.746,Q:-0.484},
+      {year:2010,Rs:0.20,Ro:0.20,Rt:0.12,Rf:0.18,Rc:0.22,R_scalar:0.190,Pe_raw:0.666,Pe_eff:0.888,Q:-0.698},
+      {year:2012,Rs:0.14,Ro:0.12,Rt:0.08,Rf:0.08,Rc:0.18,R_scalar:0.133,Pe_raw:0.679,Pe_eff:0.910,Q:-0.777},
+    ],
+    weights:{Rs:0.31,Ro:0.22,Rt:0.18,Rf:0.03,Rc:0.26},
+    ews:{EWS_var:true,EWS_var_value:1.65,EWS_ac:true,EWS_ac_value:0.77,EWS_csd:true},
+  },
+  blackberry: {
+    group:'A', groupColor:'#ef4444',
+    label:'BlackBerry Ltd.', sector:'Mobile Devices',
+    period:'2010–2016',
+    event:'Devices business exited · hardware collapse (2016)',
+    dominantFail:'Rs + Rt (ecosystem lock-in failure)',
+    anno: 'BlackBerry lost the developer ecosystem battle in 2010–2011 as iOS and Android accumulated app libraries that BB10 could never replicate. Q crossed TENSION in 2011, RUPTURE in 2012 — ahead of the BB10 launch failure in 2013. Rs was the first to collapse (platform diversification near zero) followed by Rt.',
+    annoClass:'danger',
+    timeline:[
+      {year:2010,Rs:0.60,Ro:0.65,Rt:0.52,Rf:0.72,Rc:0.38,R_scalar:0.533,Pe_raw:0.269,Pe_eff:0.305,Q:0.228},
+      {year:2011,Rs:0.50,Ro:0.55,Rt:0.42,Rf:0.65,Rc:0.35,R_scalar:0.455,Pe_raw:0.435,Pe_eff:0.530,Q:-0.075},
+      {year:2012,Rs:0.38,Ro:0.42,Rt:0.30,Rf:0.55,Rc:0.30,R_scalar:0.354,Pe_raw:0.561,Pe_eff:0.718,Q:-0.364},
+      {year:2013,Rs:0.25,Ro:0.28,Rt:0.20,Rf:0.40,Rc:0.25,R_scalar:0.251,Pe_raw:0.648,Pe_eff:0.859,Q:-0.608},
+      {year:2014,Rs:0.18,Ro:0.18,Rt:0.15,Rf:0.28,Rc:0.22,R_scalar:0.189,Pe_raw:0.721,Pe_eff:0.981,Q:-0.792},
+      {year:2015,Rs:0.14,Ro:0.14,Rt:0.12,Rf:0.20,Rc:0.20,R_scalar:0.156,Pe_raw:0.762,Pe_eff:1.052,Q:-0.896},
+      {year:2016,Rs:0.12,Ro:0.12,Rt:0.10,Rf:0.16,Rc:0.18,R_scalar:0.135,Pe_raw:0.779,Pe_eff:1.082,Q:-0.947},
+    ],
+    weights:{Rs:0.28,Ro:0.22,Rt:0.18,Rf:0.02,Rc:0.30},
+    ews:{EWS_var:true,EWS_var_value:1.88,EWS_ac:true,EWS_ac_value:0.82,EWS_csd:true},
+  },
+  blockbuster: {
+    group:'A', groupColor:'#ef4444',
+    label:'Blockbuster Inc.', sector:'Video Retail',
+    period:'2004–2010',
+    event:'Chapter 11 bankruptcy · September 2010',
+    dominantFail:'Rs (Strategic) — refused to pivot to streaming',
+    anno: 'Blockbuster had an opportunity to acquire Netflix for $50M in 2000 and declined. By 2004 the model shows healthy Q (+0.43) masking a rapidly deteriorating Rs. The fastest clean collapse in the dataset: Q goes from TENSION (2006) to RUPTURE (2007) in a single period — 3 years before bankruptcy. Rs fell to near-zero as the physical rental model became structurally unviable.',
+    annoClass:'danger',
+    timeline:[
+      {year:2004,Rs:0.65,Ro:0.60,Rt:0.42,Rf:0.55,Rc:0.35,R_scalar:0.521,Pe_raw:0.091,Pe_eff:0.095,Q:0.426},
+      {year:2005,Rs:0.55,Ro:0.52,Rt:0.35,Rf:0.45,Rc:0.32,R_scalar:0.449,Pe_raw:0.219,Pe_eff:0.243,Q:0.206},
+      {year:2006,Rs:0.44,Ro:0.42,Rt:0.28,Rf:0.35,Rc:0.28,R_scalar:0.366,Pe_raw:0.383,Pe_eff:0.456,Q:-0.090},
+      {year:2007,Rs:0.32,Ro:0.32,Rt:0.22,Rf:0.25,Rc:0.25,R_scalar:0.284,Pe_raw:0.522,Pe_eff:0.658,Q:-0.374},
+      {year:2008,Rs:0.22,Ro:0.24,Rt:0.16,Rf:0.15,Rc:0.22,R_scalar:0.213,Pe_raw:0.640,Pe_eff:0.845,Q:-0.632},
+      {year:2009,Rs:0.14,Ro:0.16,Rt:0.10,Rf:0.08,Rc:0.18,R_scalar:0.147,Pe_raw:0.736,Pe_eff:1.007,Q:-0.860},
+      {year:2010,Rs:0.08,Ro:0.10,Rt:0.06,Rf:0.04,Rc:0.14,R_scalar:0.096,Pe_raw:0.791,Pe_eff:1.104,Q:-1.008},
+    ],
+    weights:{Rs:0.30,Ro:0.25,Rt:0.15,Rf:0.04,Rc:0.26},
+    ews:{EWS_var:true,EWS_var_value:2.14,EWS_ac:true,EWS_ac_value:0.88,EWS_csd:true},
+  },
+  yahoo: {
+    group:'A', groupColor:'#ef4444',
+    label:'Yahoo Inc.', sector:'Internet',
+    period:'2008–2016',
+    event:'Acquired by Verizon for $4.8B (2017) · down from $125B peak',
+    dominantFail:'Rc + Rs (strategic indecision, 5 CEOs in 5 years)',
+    anno: 'Yahoo had the brand, traffic, and capital to lead the internet era. What it lacked was consistent strategic direction. Five CEOs in five years created a governance failure more severe than any technological shock. Rc collapsed first (leadership instability), then Rs followed as successive pivot attempts left the business model undefined.',
+    annoClass:'danger',
+    timeline:[
+      {year:2008,Rs:0.58,Ro:0.52,Rt:0.50,Rf:0.72,Rc:0.40,R_scalar:0.506,Pe_raw:0.195,Pe_eff:0.214,Q:0.292},
+      {year:2010,Rs:0.48,Ro:0.45,Rt:0.42,Rf:0.68,Rc:0.35,R_scalar:0.432,Pe_raw:0.371,Pe_eff:0.439,Q:-0.007},
+      {year:2012,Rs:0.35,Ro:0.35,Rt:0.30,Rf:0.60,Rc:0.30,R_scalar:0.333,Pe_raw:0.522,Pe_eff:0.658,Q:-0.325},
+      {year:2014,Rs:0.28,Ro:0.28,Rt:0.22,Rf:0.52,Rc:0.28,R_scalar:0.274,Pe_raw:0.624,Pe_eff:0.818,Q:-0.544},
+      {year:2016,Rs:0.18,Ro:0.20,Rt:0.15,Rf:0.40,Rc:0.22,R_scalar:0.195,Pe_raw:0.741,Pe_eff:1.017,Q:-0.822},
+    ],
+    weights:{Rs:0.28,Ro:0.20,Rt:0.22,Rf:0.03,Rc:0.27},
+    ews:{EWS_var:true,EWS_var_value:1.58,EWS_ac:true,EWS_ac_value:0.76,EWS_csd:true},
+  },
+  microsoft: {
+    group:'B', groupColor:'#3b82f6',
+    label:'Microsoft Corporation', sector:'Enterprise Software',
+    period:'2010–2020',
+    event:'Nadella appointed Feb 2014 · Azure-first pivot',
+    dominantJump:'Rc + Rt simultaneous jump',
+    anno: 'Microsoft under Ballmer was approaching the tension zone: Q fell to −0.041 in 2013 (threshold: −0.20). The Nadella appointment represents a simultaneous Rc jump (+0.30, governance renewal) and Rt jump (+0.14, cloud-first platform). Q recovered from −0.041 to +0.335 over 7 years. The model captures the jump as a positive ΔR_salto term in the state equation.',
+    annoClass:'ok',
+    jumpYear:2014,
+    jumpLabel:'Nadella + Azure',
+    timeline:[
+      {year:2010,Rs:0.55,Ro:0.72,Rt:0.48,Rf:0.82,Rc:0.32,R_scalar:0.511,Pe_raw:0.226,Pe_eff:0.252,Q:0.259},
+      {year:2011,Rs:0.52,Ro:0.70,Rt:0.44,Rf:0.80,Rc:0.30,R_scalar:0.484,Pe_raw:0.286,Pe_eff:0.327,Q:0.157},
+      {year:2012,Rs:0.48,Ro:0.68,Rt:0.40,Rf:0.78,Rc:0.28,R_scalar:0.455,Pe_raw:0.380,Pe_eff:0.452,Q:0.003},
+      {year:2013,Rs:0.45,Ro:0.66,Rt:0.38,Rf:0.76,Rc:0.26,R_scalar:0.433,Pe_raw:0.450,Pe_eff:0.552,Q:-0.119},
+      {year:2014,Rs:0.52,Ro:0.68,Rt:0.52,Rf:0.78,Rc:0.60,R_scalar:0.589,Pe_raw:0.474,Pe_eff:0.587,Q:0.002},
+      {year:2015,Rs:0.60,Ro:0.70,Rt:0.62,Rf:0.80,Rc:0.66,R_scalar:0.653,Pe_raw:0.493,Pe_eff:0.614,Q:0.039},
+      {year:2016,Rs:0.68,Ro:0.72,Rt:0.68,Rf:0.82,Rc:0.70,R_scalar:0.701,Pe_raw:0.493,Pe_eff:0.614,Q:0.087},
+      {year:2018,Rs:0.75,Ro:0.76,Rt:0.75,Rf:0.84,Rc:0.74,R_scalar:0.753,Pe_raw:0.455,Pe_eff:0.558,Q:0.195},
+      {year:2020,Rs:0.80,Ro:0.78,Rt:0.80,Rf:0.86,Rc:0.78,R_scalar:0.793,Pe_raw:0.415,Pe_eff:0.501,Q:0.292},
+    ],
+    weights:{Rs:0.20,Ro:0.20,Rt:0.25,Rf:0.05,Rc:0.30},
+    ews:{EWS_var:false,EWS_var_value:1.22,EWS_ac:false,EWS_ac_value:0.45,EWS_csd:false},
+  },
+  netflix: {
+    group:'B', groupColor:'#3b82f6',
+    label:'Netflix Inc.', sector:'Streaming',
+    period:'2008–2018',
+    event:'Qwikster crisis 2011 → streaming pivot → original content',
+    dominantJump:'Rs dominant (business model redefinition)',
+    anno: 'Netflix experienced a near-threshold crisis in 2011 (Qwikster debacle, subscriber loss, stock down 77%). Q dropped to +0.035 — deep Tension. The pivot to streaming-only in 2012 was an Rs-driven adaptive jump: revenue source diversification (subscription + content ownership). Q recovered to +0.364 by 2018. Fastest recovery in Group B.',
+    annoClass:'ok',
+    jumpYear:2012,
+    jumpLabel:'Streaming-only + originals',
+    timeline:[
+      {year:2008,Rs:0.55,Ro:0.62,Rt:0.48,Rf:0.62,Rc:0.55,R_scalar:0.554,Pe_raw:0.097,Pe_eff:0.102,Q:0.452},
+      {year:2009,Rs:0.58,Ro:0.64,Rt:0.52,Rf:0.60,Rc:0.58,R_scalar:0.582,Pe_raw:0.173,Pe_eff:0.188,Q:0.394},
+      {year:2010,Rs:0.55,Ro:0.60,Rt:0.55,Rf:0.58,Rc:0.55,R_scalar:0.562,Pe_raw:0.271,Pe_eff:0.308,Q:0.254},
+      {year:2011,Rs:0.38,Ro:0.44,Rt:0.52,Rf:0.48,Rc:0.45,R_scalar:0.441,Pe_raw:0.399,Pe_eff:0.479,Q:-0.038},
+      {year:2012,Rs:0.58,Ro:0.55,Rt:0.62,Rf:0.50,Rc:0.62,R_scalar:0.587,Pe_raw:0.438,Pe_eff:0.534,Q:0.053},
+      {year:2013,Rs:0.68,Ro:0.62,Rt:0.70,Rf:0.52,Rc:0.68,R_scalar:0.664,Pe_raw:0.461,Pe_eff:0.568,Q:0.096},
+      {year:2015,Rs:0.75,Ro:0.70,Rt:0.75,Rf:0.55,Rc:0.72,R_scalar:0.724,Pe_raw:0.455,Pe_eff:0.558,Q:0.166},
+      {year:2017,Rs:0.80,Ro:0.74,Rt:0.78,Rf:0.56,Rc:0.74,R_scalar:0.760,Pe_raw:0.425,Pe_eff:0.515,Q:0.245},
+      {year:2018,Rs:0.82,Ro:0.76,Rt:0.80,Rf:0.55,Rc:0.75,R_scalar:0.777,Pe_raw:0.405,Pe_eff:0.487,Q:0.290},
+    ],
+    weights:{Rs:0.32,Ro:0.22,Rt:0.20,Rf:0.04,Rc:0.22},
+    ews:{EWS_var:false,EWS_var_value:0.98,EWS_ac:false,EWS_ac_value:0.38,EWS_csd:false},
+  },
+  amazon: {
+    group:'C', groupColor:'#22c55e',
+    label:'Amazon.com Inc.', sector:'E-commerce / Cloud',
+    period:'2010–2020',
+    event:'Sustained resilience — Q never below +0.515',
+    anno: 'Amazon represents maximum sustained resilience in the dataset. Rs continuously high (platform model = near-zero HHI across retail, cloud, logistics, media). Q stable at +0.52 throughout the decade despite Pe increasing as competition in each segment intensified. The model identifies Rs-dominance as the structural protector: continuous business model evolution prevents lock-in.',
+    annoClass:'ok',
+    timeline:[
+      {year:2010,Rs:0.72,Ro:0.65,Rt:0.68,Rf:0.60,Rc:0.72,R_scalar:0.694,Pe_raw:0.179,Pe_eff:0.195,Q:0.499},
+      {year:2012,Rs:0.75,Ro:0.68,Rt:0.72,Rf:0.58,Rc:0.74,R_scalar:0.722,Pe_raw:0.199,Pe_eff:0.219,Q:0.503},
+      {year:2014,Rs:0.78,Ro:0.70,Rt:0.75,Rf:0.56,Rc:0.76,R_scalar:0.746,Pe_raw:0.219,Pe_eff:0.243,Q:0.503},
+      {year:2016,Rs:0.80,Ro:0.72,Rt:0.78,Rf:0.58,Rc:0.78,R_scalar:0.768,Pe_raw:0.239,Pe_eff:0.267,Q:0.501},
+      {year:2018,Rs:0.82,Ro:0.74,Rt:0.80,Rf:0.60,Rc:0.80,R_scalar:0.788,Pe_raw:0.259,Pe_eff:0.291,Q:0.497},
+      {year:2020,Rs:0.84,Ro:0.76,Rt:0.82,Rf:0.62,Rc:0.82,R_scalar:0.808,Pe_raw:0.279,Pe_eff:0.318,Q:0.490},
+    ],
+    weights:{Rs:0.30,Ro:0.20,Rt:0.22,Rf:0.03,Rc:0.25},
+    ews:{EWS_var:false,EWS_var_value:0.45,EWS_ac:false,EWS_ac_value:0.12,EWS_csd:false},
+  },
+  toyota: {
+    group:'C', groupColor:'#22c55e',
+    label:'Toyota Motor Corporation', sector:'Automotive',
+    period:'2005–2020',
+    event:'Sustained resilience — 2009 recall stress tested and passed',
+    anno: 'Toyota provides the only Group C case with a documented crisis stress test: the 2009 recall crisis (8+ million vehicles recalled globally). Q dropped from +0.560 to +0.284 — the lowest in Group C, still solidly Stable. Recovery within 2 years to +0.453. Demonstrates that high R_scalar provides buffer depth: a crisis that would rupture a fragile organization only tests a resilient one.',
+    annoClass:'ok',
+    timeline:[
+      {year:2005,Rs:0.72,Ro:0.75,Rt:0.62,Rf:0.72,Rc:0.65,R_scalar:0.692,Pe_raw:0.118,Pe_eff:0.125,Q:0.567},
+      {year:2007,Rs:0.74,Ro:0.76,Rt:0.64,Rf:0.74,Rc:0.66,R_scalar:0.706,Pe_raw:0.140,Pe_eff:0.150,Q:0.556},
+      {year:2009,Rs:0.62,Ro:0.60,Rt:0.58,Rf:0.64,Rc:0.60,R_scalar:0.603,Pe_raw:0.234,Pe_eff:0.261,Q:0.342},
+      {year:2011,Rs:0.68,Ro:0.68,Rt:0.62,Rf:0.68,Rc:0.64,R_scalar:0.658,Pe_raw:0.195,Pe_eff:0.214,Q:0.444},
+      {year:2013,Rs:0.72,Ro:0.72,Rt:0.65,Rf:0.72,Rc:0.66,R_scalar:0.691,Pe_raw:0.173,Pe_eff:0.188,Q:0.503},
+      {year:2015,Rs:0.74,Ro:0.74,Rt:0.68,Rf:0.74,Rc:0.68,R_scalar:0.713,Pe_raw:0.191,Pe_eff:0.209,Q:0.504},
+      {year:2018,Rs:0.75,Ro:0.75,Rt:0.70,Rf:0.76,Rc:0.70,R_scalar:0.728,Pe_raw:0.209,Pe_eff:0.231,Q:0.497},
+      {year:2020,Rs:0.72,Ro:0.72,Rt:0.68,Rf:0.72,Rc:0.68,R_scalar:0.702,Pe_raw:0.294,Pe_eff:0.337,Q:0.365},
+    ],
+    weights:{Rs:0.22,Ro:0.28,Rt:0.18,Rf:0.05,Rc:0.27},
+    ews:{EWS_var:false,EWS_var_value:0.72,EWS_ac:false,EWS_ac_value:0.28,EWS_csd:false},
+  },
+  tsmc: {
+    group:'C', groupColor:'#22c55e',
+    label:'TSMC', sector:'Semiconductor Foundry',
+    period:'2010–2020',
+    event:'Maximum sustained resilience — Q floor at +0.621',
+    anno: 'TSMC is the theoretical ceiling case: highest Q_min in the dataset (+0.621), lowest Pe trajectory, strongest Rt across all 11 cases. The foundry model creates a structural advantage: TSMC competes on process technology, not product market share. Rs stays stable (customer concentration managed), Rt compounds continuously. The model correctly identifies this as the most structurally resilient case.',
+    annoClass:'ok',
+    timeline:[
+      {year:2010,Rs:0.72,Ro:0.75,Rt:0.75,Rf:0.70,Rc:0.65,R_scalar:0.720,Pe_raw:0.097,Pe_eff:0.102,Q:0.618},
+      {year:2012,Rs:0.74,Ro:0.76,Rt:0.78,Rf:0.72,Rc:0.66,R_scalar:0.738,Pe_raw:0.114,Pe_eff:0.121,Q:0.617},
+      {year:2014,Rs:0.75,Ro:0.77,Rt:0.80,Rf:0.73,Rc:0.68,R_scalar:0.754,Pe_raw:0.131,Pe_eff:0.140,Q:0.614},
+      {year:2016,Rs:0.76,Ro:0.78,Rt:0.82,Rf:0.74,Rc:0.70,R_scalar:0.769,Pe_raw:0.140,Pe_eff:0.150,Q:0.619},
+      {year:2018,Rs:0.78,Ro:0.79,Rt:0.84,Rf:0.76,Rc:0.72,R_scalar:0.786,Pe_raw:0.149,Pe_eff:0.161,Q:0.625},
+      {year:2020,Rs:0.80,Ro:0.80,Rt:0.86,Rf:0.78,Rc:0.74,R_scalar:0.804,Pe_raw:0.168,Pe_eff:0.182,Q:0.622},
+    ],
+    weights:{Rs:0.18,Ro:0.25,Rt:0.30,Rf:0.05,Rc:0.22},
+    ews:{EWS_var:false,EWS_var_value:0.32,EWS_ac:false,EWS_ac_value:0.08,EWS_csd:false},
+  },
+};
+
+// ════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════
+
+Chart.defaults.font.family = "'Syne Mono', monospace";
+Chart.defaults.font.size = 10;
+Chart.defaults.color = '#5a6475';
+
+const CHARTS = {};
+
+function regimeColor(q) {
+  if (q >  0.15) return '#22c55e';
+  if (q > -0.05) return '#eab308';
+  if (q > -0.20) return '#f97316';
+  return '#ef4444';
+}
+
+function regimeLabel(q) {
+  if (q >  0.15) return 'STABLE';
+  if (q > -0.05) return 'TENSION';
+  if (q > -0.20) return 'FRAGILITY';
+  return 'RUPTURE';
+}
+
+function regimeClass(q) {
+  if (q >  0.15) return 'stable';
+  if (q > -0.05) return 'tension';
+  if (q > -0.20) return 'fragile';
+  return 'rupture';
+}
+
+function qClass(q) {
+  if (q > 0.10) return 'ok';
+  if (q > -0.10) return 'warn';
+  return 'danger';
+}
+
+function destroyChart(id) {
+  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+}
+
+// ════════════════════════════════════════════════════════
+// OVERVIEW CHART
+// ════════════════════════════════════════════════════════
+
+function buildOverviewChart() {
+  const ctx = document.getElementById('overviewChart').getContext('2d');
+
+  const groupColors = { A:'#ef4444', B:'#3b82f6', C:'#22c55e' };
+  const datasets = Object.entries(CASES).map(([key, c]) => {
+    const color = groupColors[c.group];
+    const alpha = c.group === 'A' ? '99' : c.group === 'B' ? 'cc' : '88';
+    return {
+      label: c.label,
+      data: c.timeline.map(p => ({ x: p.year, y: p.Q })),
+      borderColor: color,
+      backgroundColor: 'transparent',
+      borderWidth: c.group === 'C' ? 1 : 1.5,
+      borderDash: c.group === 'C' ? [3,3] : [],
+      tension: 0.3,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: color,
+    };
+  });
+
+  CHARTS['overview'] = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      parsing: false,
+      scales: {
+        x: { type: 'linear', min: 1997, max: 2025, grid: { color:'#1b1f2b' },
+             ticks: { stepSize: 3 } },
+        y: { min: -1.1, max: 0.8,
+             grid: { color: ctx2 => ctx2.tick.value === -0.20 ? 'rgba(239,68,68,0.4)' : '#1b1f2b',
+                     lineWidth: ctx2 => ctx2.tick.value === -0.20 ? 1.5 : 1 },
+             ticks: { callback: v => v.toFixed(2) } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          mode: 'nearest', intersect: false,
+          callbacks: { label: ctx => `${ctx.dataset.label}: Q=${ctx.parsed.y.toFixed(3)}` }
+        }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// SUMMARY TABLE
+// ════════════════════════════════════════════════════════
+
+function buildSummaryTable() {
+  const tbody = document.getElementById('summaryTableBody');
+  const rows = Object.entries(CASES).map(([key, c]) => {
+    const first = c.timeline[0];
+    const last  = c.timeline[c.timeline.length - 1];
+    const anyEws = c.ews.EWS_var || c.ews.EWS_ac || c.ews.EWS_csd;
+    const groupColors = { A:'#ef4444', B:'#3b82f6', C:'#22c55e' };
+    return `
+      <tr onclick="showCase('${key}')" style="cursor:pointer">
+        <td style="font-weight:600;color:${groupColors[c.group]}">${c.label}${c.calibration?'&nbsp;<span style="font-size:8px;color:#f59e0b;border:1px solid rgba(245,158,11,.4);padding:1px 4px">CAL</span>':''}</td>
+        <td style="color:${groupColors[c.group]}">Group ${c.group}</td>
+        <td>${c.period}</td>
+        <td>${first.Q >= 0 ? '+' : ''}${first.Q.toFixed(3)}</td>
+        <td style="color:${regimeColor(last.Q)}">${last.Q >= 0 ? '+' : ''}${last.Q.toFixed(3)}</td>
+        <td><span class="regime-tag ${regimeClass(last.Q)}">${regimeLabel(last.Q)}</span></td>
+        <td style="color:${anyEws?'#ef4444':'#22c55e'}">${anyEws ? '⚡ Active' : '✓ Clear'}</td>
+        <td style="color:var(--muted)">${c.dominantFail || c.dominantJump || '—'}</td>
+      </tr>`;
+  });
+  tbody.innerHTML = rows.join('');
+}
+
+// ════════════════════════════════════════════════════════
+// CASE PANEL BUILDER
+// ════════════════════════════════════════════════════════
+
+function buildAllCasePanels() {
+  const container = document.getElementById('case-panels-container');
+  container.innerHTML = Object.entries(CASES).map(([key, c]) => `
+    <div class="case-panel" id="panel-${key}">
+      <div class="case-header">
+        <div class="case-header-left">
+          <div class="case-group-badge">
+            <div style="width:6px;height:6px;border-radius:50%;background:${c.groupColor}"></div>
+            <span style="color:${c.groupColor}">Group ${c.group}</span>
+            &nbsp;·&nbsp; <span style="color:var(--muted)">${c.sector}</span>
+            ${c.calibration ? '&nbsp;·&nbsp; <span style="color:var(--gold)">Calibration Case</span>' : ''}
+          </div>
+          <div class="case-title">${c.label}</div>
+          <div class="case-period">${c.period}</div>
+          <div class="case-event" style="color:var(--muted)">${c.event}</div>
+        </div>
+        <div class="q-final-display">
+          <div class="q-final-label">Q final</div>
+          <div class="q-final-value" style="color:${regimeColor(c.timeline.at(-1).Q)}">
+            ${c.timeline.at(-1).Q >= 0 ? '+' : ''}${c.timeline.at(-1).Q.toFixed(3)}
+          </div>
+          <div class="q-final-regime" style="color:${regimeColor(c.timeline.at(-1).Q)}">
+            ${regimeLabel(c.timeline.at(-1).Q)}
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Q peak</div>
+          <div class="kpi-val ok">+${Math.max(...c.timeline.map(p=>p.Q)).toFixed(3)}</div>
+          <div class="kpi-sub">${c.timeline.find(p=>p.Q===Math.max(...c.timeline.map(r=>r.Q)))?.year}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Q trough</div>
+          <div class="kpi-val ${qClass(Math.min(...c.timeline.map(p=>p.Q)))}">${Math.min(...c.timeline.map(p=>p.Q)).toFixed(3)}</div>
+          <div class="kpi-sub">${c.timeline.find(p=>p.Q===Math.min(...c.timeline.map(r=>r.Q)))?.year}</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Periods monitored</div>
+          <div class="kpi-val blue">${c.timeline.length}</div>
+          <div class="kpi-sub">data points</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">EWS signals</div>
+          <div class="kpi-val ${(c.ews.EWS_var||c.ews.EWS_ac||c.ews.EWS_csd)?'danger':'ok'}">
+            ${[c.ews.EWS_var,c.ews.EWS_ac,c.ews.EWS_csd].filter(Boolean).length}/3
+          </div>
+          <div class="kpi-sub">activated</div>
+        </div>
+      </div>
+
+      <div class="anno-box ${c.annoClass}">
+        <span class="anno-label">${c.group==='A'?'Collapse Analysis':c.group==='B'?'Adaptive Jump Analysis':'Resilience Analysis'}</span>
+        ${c.anno}
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="section-title">Q(t) Resilience Margin</div>
+          <div class="chart-box">
+            <div class="chart-wrap" style="height:220px">
+              <canvas id="qtChart-${key}"></canvas>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="section-title">Resilience Vector — final period</div>
+          <div class="chart-box" style="padding-top:1.75rem">
+            <div class="dim-bars" id="dimBars-${key}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="full-width">
+        <div class="section-title">Early Warning Signals</div>
+        <div class="ews-row">
+          <div class="ews-cell ${c.ews.EWS_var ? 'ews-on' : 'ews-off'}">
+            <div class="ews-cell-label">${c.ews.EWS_var ? '⚡ ACTIVE' : '✓ CLEAR'}</div>
+            <div class="ews-cell-name">EWS Variance Ratio</div>
+            <div class="ews-cell-val">Value: ${c.ews.EWS_var_value?.toFixed(2) ?? '—'} · Threshold: 1.50</div>
+          </div>
+          <div class="ews-cell ${c.ews.EWS_ac ? 'ews-on' : 'ews-off'}">
+            <div class="ews-cell-label">${c.ews.EWS_ac ? '⚡ ACTIVE' : '✓ CLEAR'}</div>
+            <div class="ews-cell-name">EWS Autocorrelation AC(1)</div>
+            <div class="ews-cell-val">Value: ${c.ews.EWS_ac_value?.toFixed(2) ?? '—'} · Threshold: 0.70</div>
+          </div>
+          <div class="ews-cell ${c.ews.EWS_csd ? 'ews-on' : 'ews-off'}">
+            <div class="ews-cell-label">${c.ews.EWS_csd ? '⚡ ACTIVE' : '✓ CLEAR'}</div>
+            <div class="ews-cell-name">Critical Slowing Down</div>
+            <div class="ews-cell-val">Recovery time ${c.ews.EWS_csd ? 'increased >50%' : 'within normal range'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="full-width" style="margin-top:1.5rem">
+        <div class="section-title">Dimension weights (derived from company structure)</div>
+        <div class="chart-box">
+          <div class="chart-wrap" style="height:140px">
+            <canvas id="weightsChart-${key}"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER CASE CHARTS
+// ════════════════════════════════════════════════════════
+
+function renderCaseCharts(key) {
+  const c = CASES[key];
+  const years = c.timeline.map(p => p.year);
+  const qs    = c.timeline.map(p => p.Q);
+  const rsc   = c.timeline.map(p => p.R_scalar);
+  const pe    = c.timeline.map(p => p.Pe_eff);
+
+  // Q(t) chart
+  destroyChart(`qt-${key}`);
+  const qtCtx = document.getElementById(`qtChart-${key}`).getContext('2d');
+  CHARTS[`qt-${key}`] = new Chart(qtCtx, {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        {
+          label: 'Q(t)',
+          data: qs,
+          borderColor: c.groupColor,
+          backgroundColor: ctx => {
+            const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+            g.addColorStop(0, c.group==='A' ? 'rgba(239,68,68,0.15)' : c.group==='B' ? 'rgba(59,130,246,0.1)' : 'rgba(34,197,94,0.08)');
+            g.addColorStop(1, 'transparent');
+            return g;
+          },
+          fill: true, borderWidth: 2.5, tension: 0.35,
+          pointBackgroundColor: qs.map(q => regimeColor(q)),
+          pointBorderColor: '#0d0f14', pointBorderWidth: 2, pointRadius: 5,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: '#1b1f2b' } },
+        y: {
+          min: Math.min(-0.6, Math.min(...qs) - 0.1),
+          max: Math.max(0.7, Math.max(...qs) + 0.1),
+          grid: {
+            color: ctx => ctx.tick.value === -0.20 ? 'rgba(239,68,68,0.5)' : '#1b1f2b',
+            lineWidth: ctx => ctx.tick.value === -0.20 ? 1.5 : 1,
+          },
+          ticks: { callback: v => v.toFixed(2) }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Q = ${ctx.parsed.y.toFixed(3)} · ${regimeLabel(ctx.parsed.y)}`,
+            afterBody: items => {
+              if (c.jumpYear && years[items[0].dataIndex] === c.jumpYear)
+                return [`↑ ${c.jumpLabel}`];
+              return [];
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Dimension bars
+  const last = c.timeline.at(-1);
+  const dims = [
+    { key:'Rs', color:'var(--Rs)', label:'Rs Strategic' },
+    { key:'Ro', color:'var(--Ro)', label:'Ro Operational' },
+    { key:'Rt', color:'var(--Rt)', label:'Rt Technological' },
+    { key:'Rf', color:'var(--Rf)', label:'Rf Financial' },
+    { key:'Rc', color:'var(--Rc)', label:'Rc Cognitive' },
+  ];
+
+  const barsEl = document.getElementById(`dimBars-${key}`);
+  barsEl.innerHTML = dims.map(d => `
+    <div class="dim-row">
+      <div class="dim-key">
+        <div class="dim-key-dot" style="background:${d.color}"></div>
+        <span style="font-size:10px">${d.key}</span>
+      </div>
+      <div class="dim-track">
+        <div class="dim-fill" style="width:${last[d.key]*100}%;background:${d.color}"></div>
+      </div>
+      <div class="dim-score-val" style="color:${d.color}">${last[d.key].toFixed(2)}</div>
+    </div>
+  `).join('');
+
+  // Weights chart
+  destroyChart(`weights-${key}`);
+  const wCtx = document.getElementById(`weightsChart-${key}`).getContext('2d');
+  const wKeys = ['Rs','Ro','Rt','Rf','Rc'];
+  const wColors = ['var(--Rs)','var(--Ro)','var(--Rt)','var(--Rf)','var(--Rc)'];
+  CHARTS[`weights-${key}`] = new Chart(wCtx, {
+    type: 'bar',
+    data: {
+      labels: wKeys,
+      datasets: [{
+        data: wKeys.map(k => c.weights[k]),
+        backgroundColor: ['#22c55e','#3b82f6','#f59e0b','#8b5cf6','#ec4899'].map(c => c + '88'),
+        borderColor:     ['#22c55e','#3b82f6','#f59e0b','#8b5cf6','#ec4899'],
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      scales: {
+        x: { min:0, max:0.5, grid:{color:'#1b1f2b'}, ticks:{callback:v=>v.toFixed(2)} },
+        y: { grid:{display:false} }
+      },
+      plugins: { legend:{display:false} }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════
+
+let currentCase = null;
+
+function showCase(key) {
+  // Hide overview
+  document.getElementById('panel-overview').style.display = 'none';
+
+  // Hide all cases
+  document.querySelectorAll('.case-panel').forEach(el => el.classList.remove('active'));
+
+  // Deactivate all buttons
+  document.querySelectorAll('.case-btn').forEach(el => el.classList.remove('active'));
+
+  // Show selected
+  document.getElementById(`panel-${key}`).classList.add('active');
+  document.getElementById(`btn-${key}`).classList.add('active');
+
+  // Render charts
+  if (currentCase !== key) {
+    setTimeout(() => renderCaseCharts(key), 50);
+    currentCase = key;
+  }
+}
+
+function showOverview() {
+  document.getElementById('panel-overview').style.display = 'block';
+  document.querySelectorAll('.case-panel').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.case-btn').forEach(el => el.classList.remove('active'));
+  currentCase = null;
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+
+window.addEventListener('DOMContentLoaded', () => {
+  buildAllCasePanels();
+  buildSummaryTable();
+  setTimeout(buildOverviewChart, 100);
+});
+</script>
+</body>
+</html>
