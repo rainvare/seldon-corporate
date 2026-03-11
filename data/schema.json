@@ -1,0 +1,31 @@
+{
+  "dimensions": {
+    "Rs": {"name": "Strategic Resilience", "range": [0, 1], "note": "Revenue HHI, segment velocity, strategic agility"},
+    "Ro": {"name": "Operational Resilience", "range": [0, 1], "note": "Margin volatility, operating efficiency, SC risk"},
+    "Rt": {"name": "Technological Resilience", "range": [0, 1], "note": "R&D intensity, tech debt (D_leg), patent renewal"},
+    "Rf": {"name": "Financial Resilience", "range": [0, 1], "note": "Liquidity, leverage, FCF coverage, capital access"},
+    "Rc": {"name": "Cognitive Resilience", "range": [0, 1], "note": "CEO tenure, mgmt diversity, exec rotation, innov_culture — requires Cohen kappa >= 0.70"}
+  },
+  "pressure_components": {
+    "Pt": {"name": "Technology disruption", "range": [0, 1], "source": "IDC/Gartner market share data"},
+    "Pc": {"name": "Competitive pressure", "range": [0, 1], "source": "top-3 competitor revenue growth, normalized"},
+    "Preg": {"name": "Regulatory pressure", "values": [0, 0.5, 1], "source": "analyst judgment"}
+  },
+  "parameters": {
+    "gamma": 0.50,
+    "alpha": 0.15,
+    "beta": 0.10,
+    "delta": 0.04
+  },
+  "thresholds": {
+    "LOO_Q_crit": 0.07,
+    "structural_rupture": -0.20,
+    "fragility": -0.05,
+    "tension_upper": 0.15
+  },
+  "groups": {
+    "A": "Collapses — Q should cross -0.20 before crisis event",
+    "B": "Adaptive jumps — Q approaches but does not cross -0.20",
+    "C": "Sustained resilience — Q remains above +0.28 throughout"
+  }
+}
