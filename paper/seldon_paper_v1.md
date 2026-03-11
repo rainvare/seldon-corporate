@@ -321,4 +321,4 @@ Wildavsky, A. (1988). *Searching for Safety*. Transaction Publishers.
 
 *Word count (excl. references): ~6,800*
 *Status: Working paper — not yet submitted for peer review*
-*Data and code: github.com/[author]/seldon-corporate*
+*Data and code: github.com/rainvare/seldon-corporate*
